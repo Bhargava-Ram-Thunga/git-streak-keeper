@@ -1,0 +1,50 @@
+name: 🌿 Daily Contribution Streak Keeper
+
+on:
+  schedule:
+    # Runs everyday at 04:30 UTC (change this to whatever time you prefer)
+    - cron: '30 4 * * *'
+  workflow_dispatch: # Allows manual trigger anytime from the Actions tab
+
+# Required permissions for GitHub Actions to commit and push back to repository
+permissions:
+  contents: write
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: ⚡ Run Activity Logger
+        run: |
+          python scripts/update_log.py
+
+      - name: 🚀 Commit & Push Changes
+        run: |
+          # Use author email configured in repo variable/secret or default to GitHub user noreply
+          GIT_USER_NAME="${{ vars.GIT_USER_NAME || github.actor }}"
+          GIT_USER_EMAIL="${{ vars.GIT_USER_EMAIL || format('{0}@users.noreply.github.com', github.actor) }}"
+
+          git config --global user.name "$GIT_USER_NAME"
+          git config --global user.email "$GIT_USER_EMAIL"
+
+          git add ACTIVITY.md activity.json
+
+          # Only commit if there are changes
+          if ! git diff --staged --quiet; then
+            COMMIT_DATE=$(date -u +"%Y-%m-%d")
+            git commit -m "chore(streak): daily activity update [$COMMIT_DATE]"
+            git push origin HEAD:${{ github.ref_name || 'main' }}
+            echo "Successfully recorded contribution for $COMMIT_DATE"
+          else
+            echo "No changes detected to commit."
+          fi
