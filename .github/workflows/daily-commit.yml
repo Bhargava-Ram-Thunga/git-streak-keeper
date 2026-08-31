@@ -2,8 +2,8 @@ name: 🌿 Daily Contribution Streak Keeper
 
 on:
   schedule:
-    # Runs everyday at 04:30 UTC (change this to whatever time you prefer)
-    - cron: '30 4 * * *'
+    # Runs 4 times a day (every 6 hours) at an odd minute (:17) to avoid GitHub cron queue delays
+    - cron: '17 3,9,15,21 * * *'
   workflow_dispatch: # Allows manual trigger anytime from the Actions tab
 
 # Required permissions for GitHub Actions to commit and push back to repository
@@ -41,10 +41,11 @@ jobs:
 
           # Only commit if there are changes
           if ! git diff --staged --quiet; then
-            COMMIT_DATE=$(date -u +"%Y-%m-%d")
-            git commit -m "chore(streak): daily activity update [$COMMIT_DATE]"
+            COMMIT_TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+            git commit -m "chore(streak): daily activity update [$COMMIT_TIMESTAMP]"
+            git pull --rebase origin ${{ github.ref_name || 'main' }}
             git push origin HEAD:${{ github.ref_name || 'main' }}
-            echo "Successfully recorded contribution for $COMMIT_DATE"
+            echo "Successfully recorded contribution for $COMMIT_TIMESTAMP"
           else
             echo "No changes detected to commit."
           fi
